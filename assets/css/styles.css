@@ -1,8 +1,68 @@
-.playBox {
-    background-color: white;
-    text-align: center;
+body {
+    background-color: lightslategrey;
 }
 
-body {
-    background-color: grey;
+header {
+    padding: 15px;
+    background-color: darkslategrey;
+    color: white;
+    margin-bottom: 20px;
+}
+
+
+/* .form-row {
+    padding-left: 15px;
+} */
+
+.narrationText {
+    text-align: center;
+    margin-top: 10px;
+    margin-bottom: 30px;
+    color: white;
+    font-size: 1.2em;
+}
+
+.playbox {
+    background-color: white;
+    text-align: center;
+    min-height: 250px;
+    padding: 15px;
+    position: relative;
+    margin-bottom: 20px;
+}
+
+#p2Choices,
+#p1Choices {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+#p1Tally,
+#p2Tally {
+    position: absolute;
+    bottom: 10%;
+    left: 50%;
+    transform: translate(-50%, 0);
+}
+
+#resultsBox {
+    position: relative;
+    margin-bottom: 10px;
+}
+
+#result {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%)
+}
+
+#chatbox {
+    background-color: white;
+    height: 200px;
+    padding: 10px 20px;
+    overflow: scroll;
+    margin-bottom: 20px;
 }
