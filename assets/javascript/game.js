@@ -1,7 +1,5 @@
 "use strict";
-
-// Initialize Firebase
-var config = {
+var config = { // Initialize Firebase
     apiKey: "AIzaSyD-hi5qrPHcSZFbTbuwcRGvr2RVLJAJxs0",
     authDomain: "rps-app-be56e.firebaseapp.com",
     databaseURL: "https://rps-app-be56e.firebaseio.com",
@@ -11,32 +9,36 @@ var config = {
 };
 firebase.initializeApp(config);
 var database = firebase.database();
-
 (() => {
     const app = {
-        validKeystrokes: ["r", "p", "s"],
-        choices: { r: "👊", p: "🤚", s: "✌️" },
-        p1: { color: "red" },
-        p2: { color: "green" },
-        turn: -1,
+        p1Ref: database.ref("/players/1"),
+        p2Ref: database.ref("/players/2"),
+        phsRef: database.ref("/phase"),
+        you: "tbd",
+        opp: "tbd",
+
         load: () => {
+            app.decrementPhase();
             app.addDatabaseListeners();
             app.addButtonListeners();
         },
         addDatabaseListeners: () => {
-            console.log("addDatabaseListeners")
-            database.ref().on("value", (snapshot) => {
-                console.log("database value triggered");
-                // app.getPhase(snapshot);
+            // console.log("addDatabaseListeners")
+            database.ref().on("value", (snap) => {
+                // console.log("Database ref changed value");
+            });
+            database.ref(".info/connected").on("value", (snap) => {
+                if (snap.val()) { // If they are connected...
+                    // console.log("Connected ref changed value");
+                }
             });
         },
         addButtonListeners: () => {
-            console.log("addButtonListeners");
+            // console.log("addButtonListeners");
             $("#startBtn").on("click", (event) => {
                 event.preventDefault();
                 console.log("startBtn clicked");
-                if (phase === 0) app.readyPlayerOne();
-                else if (phase === 1) app.readyPlayerTwo();
+                app.readyPlayer();
             });
             $("#sendBtn").on("click", (event) => {
                 event.preventDefault();
@@ -47,15 +49,25 @@ var database = firebase.database();
                 }
             });
         },
-        getPhase: (snapshot) => {
-            console.log("getPhase");
+        incrementPhase: () => {
+            console.log("incrementPhase triggered");
+            app.phsRef.transaction(function(currentPhase) {
+                if (currentPhase === null) return 1
+                else return currentPhase + 1;
+            });
+        },
+        decrementPhase: () => {
+            console.log("decrementPhase triggered");
+            app.phsRef.transaction(function(currentPhase) {
+                if (currentPhase === null) return 1
+                else return currentPhase - 1;
+            });
+        },
+        readyPlayer: (num) => {
+            console.log("readyPlayer(" + num + ")");
+            p1.push({
 
-        },
-        readyPlayerOne: () => {
-            console.log("readyPlayerOne");
-        },
-        readyPlayerTwo: () => {
-            console.log("readyPlayerTwo");
+            });
         },
         sendChat: (px) => {
             console.log(`sendChat(${px})`);
