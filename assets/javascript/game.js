@@ -18,7 +18,7 @@ var database = firebase.database();
         opp: "tbd",
 
         load: () => {
-            app.decrementPhase();
+            console.log(app.incrementPhase());
             app.addDatabaseListeners();
             app.addButtonListeners();
         },
@@ -37,7 +37,7 @@ var database = firebase.database();
             // console.log("addButtonListeners");
             $("#startBtn").on("click", (event) => {
                 event.preventDefault();
-                console.log("startBtn clicked");
+                // console.log("startBtn clicked");
                 app.readyPlayer();
             });
             $("#sendBtn").on("click", (event) => {
@@ -49,27 +49,25 @@ var database = firebase.database();
                 }
             });
         },
-        incrementPhase: () => {
+        incrementPhase: () => { //done
             console.log("incrementPhase triggered");
             app.phsRef.transaction(function(currentPhase) {
                 if (currentPhase === null) return 1
                 else return currentPhase + 1;
             });
         },
-        decrementPhase: () => {
+        decrementPhase: () => { //done
             console.log("decrementPhase triggered");
             app.phsRef.transaction(function(currentPhase) {
                 if (currentPhase === null) return 1
                 else return currentPhase - 1;
             });
         },
-        readyPlayer: (num) => {
-            console.log("readyPlayer(" + num + ")");
-            p1.push({
-
-            });
+        readyPlayer: () => { //in progress
+            console.log("readyPlayer triggered");
+            console.log(app.phsRef.phase);
         },
-        sendChat: (px) => {
+        sendChat: (px) => { // come back to this
             console.log(`sendChat(${px})`);
             $("#chatbox").prepend(`${px}: ${$("#chatInput").val().trim()}<br>`)
         },
