@@ -19,15 +19,14 @@
     </header>
 
     <div class="container">
-        <div id="playerGreeting" class="col-sm-12">
+        <div id="playerGreeting">
             <form>
                 <div class="form-row">
-                    <div class="col-sm-3 offset-sm-4">
-                        <label class="sr-only" for="nameInput">Name</label>
-                        <input id="nameInput" type="text" class="form-control mb-2" placeholder="name">
-                    </div>
-                    <div class="col-sm-1">
-                        <button id="startBtn" type="submit" class="btn btn-info mb-2">Start</button>
+                    <div class="col-sm-4 offset-sm-4 input-group mb-3">
+                        <input id="nameInput" type="text" class="form-control" placeholder="Enter name">
+                        <div class="input-group-append">
+                            <button id="startBtn" class="btn btn-info" type="submit">Start</button>
+                        </div>
                     </div>
                 </div>
             </form>
@@ -93,12 +92,11 @@
         </div>
         <form>
             <div class="form-row">
-                <div class="col-sm-7 offset-sm-2">
-                    <label class="sr-only" for="chatInput">message</label>
-                    <input id="chatInput" type="text" class="form-control mb-2" placeholder="write message here...">
-                </div>
-                <div class="col-sm-1">
-                    <button id="sendBtn" type="submit" class="btn btn-info mb-2">Send</button>
+                <div class="col-sm-8 offset-sm-2 input-group mb-3">
+                    <input id="chatInput" type="text" class="form-control" placeholder="Write message here...">
+                    <div class="input-group-append">
+                        <button id="sendBtn" class="btn btn-info" type="submit">Start</button>
+                    </div>
                 </div>
             </div>
         </form>
