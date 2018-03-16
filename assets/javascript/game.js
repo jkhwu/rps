@@ -13,7 +13,7 @@ $(document).ready(function() {
     var presenceRef = database.ref("/.info/connected");
     var playersRef = database.ref("/players");
     var turnRef = database.ref("/turn");
-    var chatRef = database.ref("chat");
+    var chatRef = database.ref("/chat");
     var player, otherPlayer, userRef, wins1, wins2, losses1, losses2;
     var name = {};
     var choices = ["👊", "🤚", "✌️"];
@@ -22,7 +22,6 @@ $(document).ready(function() {
 
     const app = {
         load: () => {
-            console.log("loaded?")
             app.addDatabaseListeners();
             app.addButtonListeners();
             app.addChatListeners();
@@ -39,7 +38,7 @@ $(document).ready(function() {
                 }
             });
             playersRef.on("child_added", (childSnapshot) => {
-                var key = childSnapshot.key();
+                var key = childSnapshot.key;
                 name[key] = childSnapshot.val().name;
                 var waiting = $(`#p${key}Header`).text(`name[key]`);
                 var wins = childSnapshot.val().wins;
@@ -47,7 +46,7 @@ $(document).ready(function() {
                 $(`#p${key}Tally`).text(`${wins} wins | ${losses} losses`);
             });
             playersRef.on("child_removed", (childSnapshot) => {
-                var key = childSnapshot.key();
+                var key = childSnapshot.key;
                 app.sendDisconnect(key);
                 $(`#p${key}Header`).text(`Waiting for Player ${key}...`);
                 $(".card-body").empty();
@@ -65,9 +64,9 @@ $(document).ready(function() {
                 }
             });
             playersRef.child(1).on("child_changed", (childSnapshot) => {
-                if (childSnapshot.key() == "wins") {
+                if (childSnapshot.key == "wins") {
                     wins1 = childSnapshot.val();
-                } else if (childSnapshot.key() == "losses") {
+                } else if (childSnapshot.key == "losses") {
                     losses1 = childSnapshot.val();
                 }
                 if (wins1 !== undefined) {
@@ -75,9 +74,9 @@ $(document).ready(function() {
                 }
             });
             playersRef.child(2).on("child_changed", (childSnapshot) => {
-                if (childSnapshot.key() == "wins") {
+                if (childSnapshot.key == "wins") {
                     wins2 = childSnapshot.val();
-                } else if (childSnapshot.key() == "losses") {
+                } else if (childSnapshot.key == "losses") {
                     losses2 = childSnapshot.val();
                 }
                 if (wins1 !== undefined) {
@@ -89,7 +88,11 @@ $(document).ready(function() {
             console.log("addButtonListeners");
             $("#startBtn").one("click", (event) => {
                 event.preventDefault();
-                app.readyPlayer(); // add if statement for blanks
+                console.log("startBtn clicked");
+                if ($("#nameInput").val() !== "") {
+                    app.readyPlayer();
+                    $("#nameInput").val("");
+                }
             });
             $("#sendBtn").on("click", (event) => {
                 event.preventDefault();
@@ -103,37 +106,24 @@ $(document).ready(function() {
         addChatListeners: () => {
             console.log("addChatListeners");
         },
-        incrementPhase: () => { //done
-            console.log("incrementPhase triggered");
-            app.phsRef.transaction(function(currentPhase) {
-                if (currentPhase === null) return 1
-                else return currentPhase + 1;
-            });
-        },
-        decrementPhase: () => { //done
-            console.log("decrementPhase triggered");
-            app.phsRef.transaction(function(currentPhase) {
-                if (currentPhase === null) return 1
-                else return currentPhase - 1;
-            });
-        },
         readyPlayer: () => { //in progress
-            console.log("readyPlayer triggered");
-            database.once("value", (snapshot) => {
+            database.ref().once("value", (snapshot) => {
+                console.log("readyPlayer triggered");
                 var playerObj = snapshot.child("playersRef");
                 var num = playerObj.numChildren();
+                console.log("num: " + num);
                 if (num == 0) {
                     player = 1;
-                    app.addPlayer(player); // try refactoring this
-                } else if (num == 1 && playerObj.val()[2] !== undefined) {
-                    player = 1;
-                    app.addPlayer(player);
-                    turnRef.set(1);
+                    console.log("you are player 1");
+                    // } else if (num == 1 && playerObj.val()[2] !== undefined) {
+                    //     player = 1;                    
+                    //     turnRef.set(1);
                 } else if (num == 1) {
                     player = 2;
-                    app.addPlayer(player);
+                    console.log("you are player 2");
                     turnRef.set(1);
                 }
+                app.addPlayer(player);
             });
         },
         addPlayer: (count) => { // is count needed?
@@ -149,15 +139,22 @@ $(document).ready(function() {
         },
         turn1: () => {
             console.log("turn1");
-
+            $(`#p1Header`).addClass("bg-info");
+            app.turnMessage(1);
+            if (player == 1) app.showChoice();
         },
         turn2: () => {
-            console.log("turn1");
-
+            console.log("turn2");
+            $("#p1Header").removeClass("bg-info");
+            $("#p2Header").addClass("bg-info");
+            app.turnMessage(2);
+            if (player == 2) app.showChoice();
         },
         turn3: () => {
-            console.log("turn1");
-
+            console.log("turn3");
+            $("#p2Header").removeClass("bg-info");
+            app.turnMessage(3);
+            app.outcome();
         },
         turnMessage: (playTurn) => {
             otherPlayer = player == 1 ? 2 : 1;
@@ -178,6 +175,61 @@ $(document).ready(function() {
         setChoice: function() {
             var selection = $(this).val();
             userRef.update({ choice: selection });
+            $(`#p${player}Choices`).empty().html(`<h1>${selection}</h1>`);
+            turnRef.once("value", (snapshot) => {
+                var turnNum = snapshot.val();
+                turnNum++;
+                turnRef.set(turnNum);
+            });
+        },
+        outcome: () => {
+            playersRef.once("value", function(snapshot) {
+                var snap1 = snapshot.val()[1];
+                var snap2 = snapshot.val()[2];
+                choice1 = snap1.choice;
+                wins1 = snap1.wins;
+                losses1 = snap1.losses;
+                choice2 = snap2.choice;
+                wins2 = snap2.wins;
+                losses2 = snap2.losses;
+                var textChoice = otherPlayer == 1 ? choice1 : choice2;
+                $(`#p{otherPlayer}Choices`).empty().html(`<h1>${textChoice}</h1>`);
+                app.logic();
+            });
+        },
+        logic: () => {
+            if (choice1 == choice2) app.winner(0);
+            else if (choice1 == "👊") {
+                if (choice2 == "🤚") app.winner(2);
+                else if (choice2 == "✌️") app.winner(1);
+            } else if (choice1 == "🤚") {
+                if (choice2 == "👊") app.winner(1);
+                else if (choice2 == "✌️") app.winner(2);
+            } else if (choice1 == "✌️") {
+                if (choice2 == "👊") app.winner(2);
+                else if (choice2 == "🤚") app.winner(1);
+            }
+        },
+        winner: (playerNum) => {
+            var results;
+            if (playerNum == 0) results = "Tie Game!"
+            else {
+                results = name[playerNum] + " Wins!";
+                if (playerNum == 1) {
+                    wins = wins1;
+                    losses = losses2;
+                } else {
+                    wins = wins2;
+                    losses = losses1;
+                }
+                wins++;
+                losses++;
+            }
+            setTimeout(() => $("#results").html(`<h3 class="card-title">${results}</h3>`), 500);
+            setTimeout(() => {
+                turnRef.set(1);
+                $("#results").empty();
+            }, 2000);
         },
         sendChat: (px) => { // done for now
             console.log(`sendChat(${px})`);
@@ -185,6 +237,11 @@ $(document).ready(function() {
         },
         sendDisconnect: (num) => {
 
+        },
+        logVars: () => {
+            console.log("--------------");
+            console.log(`Player: ${player}, otherPlayer: ${otherPlayer}, userRef: ${userRef}, wins1: ${wins1}, wins2: ${wins2}, losses1: ${losses1}, losses2: ${losses2}, name: ${name}`);
+            console.log("--------------");
         }
     }
     app.load();
