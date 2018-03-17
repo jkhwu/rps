@@ -10,7 +10,7 @@ $(document).ready(function() {
     };
     firebase.initializeApp(config);
     var database = firebase.database();
-    var presenceRef = database.ref("/.info/connected");
+    var connectedRef = database.ref("/.info/connected");
     var playersRef = database.ref("/players");
     var turnRef = database.ref("/turn");
     var chatRef = database.ref("/chat");
@@ -27,32 +27,32 @@ $(document).ready(function() {
             app.addChatListeners();
         },
         addDatabaseListeners: () => {
-            database.ref().on("value", (snapshot) => {
-                var turnVal = snapshot.child("turn").val();
+            database.ref().on("value", (snap) => {
+                var turnVal = snap.child("turn").val();
                 if (turnVal !== null && player == undefined) {
                     $(".container").empty();
                     var message = $("<div>").addClass("container").html("<h2>There are already two players. Please refresh in a few minutes to check if they're finished.</h2>");
                     $("body").append(message);
                 }
             });
-            playersRef.on("child_added", (childSnapshot) => {
-                var key = childSnapshot.key;
-                name[key] = childSnapshot.val().name;
+            playersRef.on("child_added", (childsnap) => {
+                var key = childsnap.key;
+                name[key] = childsnap.val().name;
                 $(`#p${key}Header`).html(`<strong>${name[key]}</strong>`);
-                var wins = childSnapshot.val().wins;
-                var losses = childSnapshot.val().losses;
+                var wins = childsnap.val().wins;
+                var losses = childsnap.val().losses;
                 $(`#p${key}Tally`).text(`${wins} wins | ${losses} losses`);
             });
-            playersRef.on("child_removed", (childSnapshot) => {
-                var key = childSnapshot.key;
+            playersRef.on("child_removed", (childsnap) => {
+                var key = childsnap.key;
                 app.sendDisconnect(key);
                 $("#narrationText").text("Please wait for other player to connect.");
                 $(`#p${key}Header`).text(`Waiting for Player ${key}...`).removeClass("bg-info");
                 $(".card-body").empty();
                 $(".card-footer").text("0 wins | 0 losses");
             });
-            turnRef.on("value", (snapshot) => { //verified
-                var turnNum = snapshot.val();
+            turnRef.on("value", (snap) => { //verified
+                var turnNum = snap.val();
                 if (turnNum == 1) {
                     $(".card-body #results").empty();
                     app.turn1();
@@ -62,19 +62,19 @@ $(document).ready(function() {
                     app.turn3();
                 }
             });
-            playersRef.child(1).on("child_changed", (childSnapshot) => { //verified
-                if (childSnapshot.key == "wins") {
-                    wins1 = childSnapshot.val();
-                } else if (childSnapshot.key == "losses") {
-                    losses1 = childSnapshot.val();
+            playersRef.child(1).on("child_changed", (childsnap) => { //verified
+                if (childsnap.key == "wins") {
+                    wins1 = childsnap.val();
+                } else if (childsnap.key == "losses") {
+                    losses1 = childsnap.val();
                 }
                 $("#p1Tally").text(`${wins1} wins | ${losses1} losses`);
             });
-            playersRef.child(2).on("child_changed", (childSnapshot) => {
-                if (childSnapshot.key == "wins") {
-                    wins2 = childSnapshot.val();
-                } else if (childSnapshot.key == "losses") {
-                    losses2 = childSnapshot.val();
+            playersRef.child(2).on("child_changed", (childsnap) => {
+                if (childsnap.key == "wins") {
+                    wins2 = childsnap.val();
+                } else if (childsnap.key == "losses") {
+                    losses2 = childsnap.val();
                 }
                 $("#p2Tally").text(`${wins2} wins | ${losses2} losses`)
             });
@@ -99,17 +99,17 @@ $(document).ready(function() {
         },
         addChatListeners: () => {
             console.log("addChatListeners");
-            chatRef.on("child_added", (childSnapshot) => {
-                var playerName = childSnapshot.val().name;
-                var message = childSnapshot.val().message;
+            chatRef.on("child_added", (childsnap) => {
+                var playerName = childsnap.val().name;
+                var message = childsnap.val().message;
                 app.showChat(playerName, message);
             });
         },
         readyPlayer: function() { //in progress
-            playersRef.once("value", function(snapshot) {
-                if (!snapshot.child("1").exists()) {
+            playersRef.once("value", function(snap) {
+                if (!snap.child("1").exists()) {
                     player = 1;
-                } else if (!snapshot.child("1").exists() && snapshot.child("2").exists()) {
+                } else if (!snap.child("1").exists() && snap.child("2").exists()) {
                     player = 1;
                     turnRef.set(1);
                 } else {
@@ -119,7 +119,7 @@ $(document).ready(function() {
                 app.addPlayer();
             });
         },
-        addPlayer: function() { // is count needed?
+        addPlayer: function() {
             var playerName = $("#nameInput").val();
             $("#playerGreeting").text("Hi, " + playerName + ". You are Player " + player + ".");
             userRef = playersRef.child(player);
@@ -165,16 +165,16 @@ $(document).ready(function() {
             var selection = $(this).attr("data-choice");
             userRef.update({ choice: selection });
             $(`#p${player}Choices`).html(`<h1>${selection}</h1>`);
-            turnRef.once("value", (snapshot) => {
-                var turnNum = snapshot.val();
+            turnRef.once("value", (snap) => {
+                var turnNum = snap.val();
                 turnNum++;
                 turnRef.set(turnNum);
             });
         },
         outcome: () => {
-            playersRef.once("value", function(snapshot) {
-                var snap1 = snapshot.val()[1];
-                var snap2 = snapshot.val()[2];
+            playersRef.once("value", function(snap) {
+                var snap1 = snap.val()[1];
+                var snap2 = snap.val()[2];
                 choice1 = snap1.choice;
                 wins1 = snap1.wins;
                 losses1 = snap1.losses;
