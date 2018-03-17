@@ -27,11 +27,9 @@ $(document).ready(function() {
             app.addChatListeners();
         },
         addDatabaseListeners: () => {
-            console.log("addDatabaseListeners")
             database.ref().on("value", (snapshot) => {
                 var turnVal = snapshot.child("turn").val();
                 if (turnVal !== null && player == undefined) {
-                    console.log("too many players");
                     $(".container").empty();
                     var message = $("<div>").addClass("container").html("<h2>There are already two players. Please refresh in a few minutes to check if they're finished.</h2>");
                     $("body").append(message);
@@ -40,7 +38,7 @@ $(document).ready(function() {
             playersRef.on("child_added", (childSnapshot) => {
                 var key = childSnapshot.key;
                 name[key] = childSnapshot.val().name;
-                var waiting = $(`#p${key}Header`).text(`name[key]`);
+                $(`#p${key}Header`).html(`<strong>${name[key]}</strong>`);
                 var wins = childSnapshot.val().wins;
                 var losses = childSnapshot.val().losses;
                 $(`#p${key}Tally`).text(`${wins} wins | ${losses} losses`);
@@ -48,11 +46,12 @@ $(document).ready(function() {
             playersRef.on("child_removed", (childSnapshot) => {
                 var key = childSnapshot.key;
                 app.sendDisconnect(key);
-                $(`#p${key}Header`).text(`Waiting for Player ${key}...`);
+                $("#narrationText").text("Please wait for other player to connect.");
+                $(`#p${key}Header`).text(`Waiting for Player ${key}...`).removeClass("bg-info");
                 $(".card-body").empty();
                 $(".card-footer").text("0 wins | 0 losses");
             });
-            turnRef.on("value", (snapshot) => {
+            turnRef.on("value", (snapshot) => { //verified
                 var turnNum = snapshot.val();
                 if (turnNum == 1) {
                     $(".card-body #results").empty();
@@ -63,15 +62,13 @@ $(document).ready(function() {
                     app.turn3();
                 }
             });
-            playersRef.child(1).on("child_changed", (childSnapshot) => {
+            playersRef.child(1).on("child_changed", (childSnapshot) => { //verified
                 if (childSnapshot.key == "wins") {
                     wins1 = childSnapshot.val();
                 } else if (childSnapshot.key == "losses") {
                     losses1 = childSnapshot.val();
                 }
-                if (wins1 !== undefined) {
-                    $("#p1Tally").text(`${wins1} wins | ${losses1} losses`)
-                }
+                $("#p1Tally").text(`${wins1} wins | ${losses1} losses`);
             });
             playersRef.child(2).on("child_changed", (childSnapshot) => {
                 if (childSnapshot.key == "wins") {
@@ -79,16 +76,12 @@ $(document).ready(function() {
                 } else if (childSnapshot.key == "losses") {
                     losses2 = childSnapshot.val();
                 }
-                if (wins1 !== undefined) {
-                    $("#p1Tally").text(`${wins2} wins | ${losses2} losses`)
-                }
+                $("#p2Tally").text(`${wins2} wins | ${losses2} losses`)
             });
         },
         addButtonListeners: () => {
-            console.log("addButtonListeners");
             $("#startBtn").one("click", (event) => {
                 event.preventDefault();
-                console.log("startBtn clicked");
                 if ($("#nameInput").val() !== "") {
                     app.readyPlayer();
                     $("#nameInput").val("");
@@ -98,38 +91,38 @@ $(document).ready(function() {
                 event.preventDefault();
                 console.log("sendBtn clicked");
                 if ($("#chatInput").val() !== "") {
-                    app.sendChat("p1");
+                    var message = $("#chatInput").val();
                     $("#chatInput").val("");
+                    app.sendChat(message);
                 }
             });
         },
         addChatListeners: () => {
             console.log("addChatListeners");
-        },
-        readyPlayer: () => { //in progress
-            database.ref().once("value", (snapshot) => {
-                console.log("readyPlayer triggered");
-                var playerObj = snapshot.child("playersRef");
-                var num = playerObj.numChildren();
-                console.log("num: " + num);
-                if (num == 0) {
-                    player = 1;
-                    console.log("you are player 1");
-                    // } else if (num == 1 && playerObj.val()[2] !== undefined) {
-                    //     player = 1;                    
-                    //     turnRef.set(1);
-                } else if (num == 1) {
-                    player = 2;
-                    console.log("you are player 2");
-                    turnRef.set(1);
-                }
-                app.addPlayer(player);
+            chatRef.on("child_added", (childSnapshot) => {
+                var playerName = childSnapshot.val().name;
+                var message = childSnapshot.val().message;
+                app.showChat(playerName, message);
             });
         },
-        addPlayer: (count) => { // is count needed?
+        readyPlayer: function() { //in progress
+            playersRef.once("value", function(snapshot) {
+                if (!snapshot.child("1").exists()) {
+                    player = 1;
+                } else if (!snapshot.child("1").exists() && snapshot.child("2").exists()) {
+                    player = 1;
+                    turnRef.set(1);
+                } else {
+                    player = 2;
+                    turnRef.set(1);
+                }
+                app.addPlayer();
+            });
+        },
+        addPlayer: function() { // is count needed?
             var playerName = $("#nameInput").val();
-            $("#narrationText").text(`Hi ${playerName}. You are Player ${player}.`).removeClass("invisible");
-            userRef = playersRef.child(count);
+            $("#playerGreeting").text("Hi, " + playerName + ". You are Player " + player + ".");
+            userRef = playersRef.child(player);
             userRef.onDisconnect().remove();
             userRef.set({
                 name: playerName,
@@ -138,20 +131,18 @@ $(document).ready(function() {
             });
         },
         turn1: () => {
-            console.log("turn1");
+            $(".card-body").empty();
             $(`#p1Header`).addClass("bg-info");
             app.turnMessage(1);
-            if (player == 1) app.showChoice();
+            if (player == 1) app.showChoices();
         },
         turn2: () => {
-            console.log("turn2");
             $("#p1Header").removeClass("bg-info");
             $("#p2Header").addClass("bg-info");
             app.turnMessage(2);
-            if (player == 2) app.showChoice();
+            if (player == 2) app.showChoices();
         },
         turn3: () => {
-            console.log("turn3");
             $("#p2Header").removeClass("bg-info");
             app.turnMessage(3);
             app.outcome();
@@ -161,21 +152,19 @@ $(document).ready(function() {
             if (playTurn == player) {
                 $("#narrationText").text("It's your turn!");
             } else if (playTurn == otherPlayer) {
-                $("#narrationText").text(`Waiting for name[otherPlayer] to choose.`);
-            } else {
-                $("#narrationText").addClass("invisible");
+                $("#narrationText").text(`Please wait for ${name[otherPlayer]} to choose.`);
             }
         },
-        showChoice: () => { //add an s
+        showChoices: () => {
             for (var i in choices) {
-                $(`#p{player}Choices`).append(`<a href="#" class="choice btn btn-lg btn-secondary mb-1" value="${i}">${i}</a>`);
+                $(`#p${player}Choices`).append(`<a href="#" class="choice btn btn-lg btn-secondary mb-1 mr-1" data-choice="${choices[i]}">${choices[i]}</a>`);
             }
             $(document).one("click", "a", app.setChoice);
         },
         setChoice: function() {
-            var selection = $(this).val();
+            var selection = $(this).attr("data-choice");
             userRef.update({ choice: selection });
-            $(`#p${player}Choices`).empty().html(`<h1>${selection}</h1>`);
+            $(`#p${player}Choices`).html(`<h1>${selection}</h1>`);
             turnRef.once("value", (snapshot) => {
                 var turnNum = snapshot.val();
                 turnNum++;
@@ -193,7 +182,7 @@ $(document).ready(function() {
                 wins2 = snap2.wins;
                 losses2 = snap2.losses;
                 var textChoice = otherPlayer == 1 ? choice1 : choice2;
-                $(`#p{otherPlayer}Choices`).empty().html(`<h1>${textChoice}</h1>`);
+                $(`#p${otherPlayer}Choices`).empty().html(`<h1>${textChoice}</h1>`);
                 app.logic();
             });
         },
@@ -212,6 +201,8 @@ $(document).ready(function() {
         },
         winner: (playerNum) => {
             var results;
+            var wins;
+            var losses;
             if (playerNum == 0) results = "Tie Game!"
             else {
                 results = name[playerNum] + " Wins!";
@@ -224,6 +215,11 @@ $(document).ready(function() {
                 }
                 wins++;
                 losses++;
+                var otherPlayerNum = playerNum == 1 ? 2 : 1;
+                setTimeout(() => {
+                    playersRef.child(playerNum).update({ wins: wins });
+                    playersRef.child(otherPlayerNum).update({ losses: losses });
+                }, 500);
             }
             setTimeout(() => $("#results").html(`<h3 class="card-title">${results}</h3>`), 500);
             setTimeout(() => {
@@ -231,95 +227,28 @@ $(document).ready(function() {
                 $("#results").empty();
             }, 2000);
         },
-        sendChat: (px) => { // done for now
-            console.log(`sendChat(${px})`);
-            $("#chatbox").prepend(`${px}: ${$("#chatInput").val().trim()}<br>`)
+        sendChat: (msg) => {
+            if (player !== undefined) {
+                chatRef.push({ name: name[player], message: msg });
+            }
         },
         sendDisconnect: (num) => {
-
+            chatRef.push({ name: name[num], message: " has disconnected." });
         },
-        logVars: () => {
-            console.log("--------------");
-            console.log(`Player: ${player}, otherPlayer: ${otherPlayer}, userRef: ${userRef}, wins1: ${wins1}, wins2: ${wins2}, losses1: ${losses1}, losses2: ${losses2}, name: ${name}`);
-            console.log("--------------");
-        }
+        showChat: (playerName, message) => {
+            var line = $("<p>").html(`${playerName}: ${message}`);
+            if (name[1] == playerName) {
+                line.css("color", "turquoise");
+            } else if (name[2] == playerName) {
+                line.css("color", "red");
+            }
+            $("#chatbox").prepend(line);
+        },
+        // logVars: () => {
+        //     console.log("--------------");
+        //     console.log(`Player: ${player}, otherPlayer: ${otherPlayer}, userRef: ${userRef}, wins1: ${wins1}, wins2: ${wins2}, losses1: ${losses1}, losses2: ${losses2}, name: ${name}`);
+        //     console.log("--------------");
+        // }
     }
     app.load();
 });
-
-// // Initialize Firebase
-// var config = { 
-//     apiKey: "AIzaSyD-hi5qrPHcSZFbTbuwcRGvr2RVLJAJxs0",
-//     authDomain: "rps-app-be56e.firebaseapp.com",
-//     databaseURL: "https://rps-app-be56e.firebaseio.com",
-//     projectId: "rps-app-be56e",
-//     storageBucket: "",
-//     messagingSenderId: "1086164440538"
-// };
-// firebase.initializeApp(config);
-// var database = firebase.database();
-// (() => {
-//     const app = {
-//         p1Ref: database.ref("/players/1"),
-//         p2Ref: database.ref("/players/2"),
-//         phsRef: database.ref("/phase"),
-//         you: "tbd",
-//         opp: "tbd",
-
-//         load: () => {
-//             console.log(app.incrementPhase());
-//             app.addDatabaseListeners();
-//             app.addButtonListeners();
-//         },
-//         addDatabaseListeners: () => {
-//             // console.log("addDatabaseListeners")
-//             database.ref().on("value", (snap) => {
-//                 // console.log("Database ref changed value");
-//             });
-//             database.ref(".info/connected").on("value", (snap) => {
-//                 if (snap.val()) { // If they are connected...
-//                     // console.log("Connected ref changed value");
-//                 }
-//             });
-//         },
-//         addButtonListeners: () => {
-//             // console.log("addButtonListeners");
-//             $("#startBtn").on("click", (event) => {
-//                 event.preventDefault();
-//                 // console.log("startBtn clicked");
-//                 app.readyPlayer();
-//             });
-//             $("#sendBtn").on("click", (event) => {
-//                 event.preventDefault();
-//                 console.log("sendBtn clicked");
-//                 if ($("#chatInput").val() !== "") {
-//                     app.sendChat("p1");
-//                     $("#chatInput").val("");
-//                 }
-//             });
-//         },
-//         incrementPhase: () => { //done
-//             console.log("incrementPhase triggered");
-//             app.phsRef.transaction(function(currentPhase) {
-//                 if (currentPhase === null) return 1
-//                 else return currentPhase + 1;
-//             });
-//         },
-//         decrementPhase: () => { //done
-//             console.log("decrementPhase triggered");
-//             app.phsRef.transaction(function(currentPhase) {
-//                 if (currentPhase === null) return 1
-//                 else return currentPhase - 1;
-//             });
-//         },
-//         readyPlayer: () => { //in progress
-//             console.log("readyPlayer triggered");
-//             console.log(app.phsRef.phase);
-//         },
-//         sendChat: (px) => { // come back to this
-//             console.log(`sendChat(${px})`);
-//             $("#chatbox").prepend(`${px}: ${$("#chatInput").val().trim()}<br>`)
-//         },
-//     }
-//     app.load();
-// })();
