@@ -204,7 +204,7 @@ $(document).ready(function() {
         showChat: (playerName, message) => {
             var line = $("<p>").html(`${playerName}: ${message}`);
             if (name[1] == playerName) line.css("color", "turquoise");
-            else if (name[2] == playerName) line.css("color", "red");
+            else if (name[2] == playerName) line.css("color", "coral");
             $("#chatbox").prepend(line);
         },
     }
